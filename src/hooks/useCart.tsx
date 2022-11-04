@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../services/api';
 import { Product, Stock } from '../types';
@@ -19,22 +19,57 @@ interface CartContextData {
   updateProductAmount: ({ productId, amount }: UpdateProductAmount) => void;
 }
 
+
+
 const CartContext = createContext<CartContextData>({} as CartContextData);
 
 export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const [cart, setCart] = useState<Product[]>(() => {
-    // const storagedCart = Buscar dados do localStorage
+    const storagedCart = localStorage.getItem('@RocketShoes:cart')
 
-    // if (storagedCart) {
-    //   return JSON.parse(storagedCart);
-    // }
+    if (storagedCart) {
+      return JSON.parse(storagedCart);
+    }
 
     return [];
   });
 
+  const [stock, setStock] = useState<Stock[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  useEffect(() => {
+    api
+      .get("/stock")
+      .then((response) => setStock(response.data))
+
+    api
+      .get(`/products`)
+      .then((response) => setProducts(response.data))
+
+  }, [])
+  
   const addProduct = async (productId: number) => {
     try {
-      // TODO
+      const [repeatedProduct] = (cart.filter((cart) => cart.id == productId))
+      if(!!repeatedProduct){
+        updateProductAmount({
+          productId: repeatedProduct.id, 
+          amount: repeatedProduct.amount
+        })
+      } else {
+        let [newProduct] = (products.filter((product) => product.id == productId)) 
+        
+        let newCart = [
+          ... cart,
+          {
+            ...newProduct,
+            amount: 1
+          }
+        ]
+        setCart(newCart)
+      }
+      if (true) {
+        localStorage.setItem('@RocketShoes:cart', JSON.stringify(cart))
+      }
     } catch {
       // TODO
     }
